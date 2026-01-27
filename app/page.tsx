@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useCustomerStore } from '@/store/customerStore';
 import { Coffee, User, Phone, MapPin, Loader2, ShoppingBag } from 'lucide-react';
 
-export default function CustomerLoginPage() {
+function CustomerLoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const setSession = useCustomerStore((state) => state.setSession);
@@ -24,7 +24,7 @@ export default function CustomerLoginPage() {
     if (tableParam) {
       setTable(tableParam);
     }
-    
+
     // If already logged in, redirect to menu
     if (isLoggedIn()) {
       router.push('/menu');
@@ -33,7 +33,7 @@ export default function CustomerLoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate: Table is required only for Dine In
     if (!name || !phone) return;
     if (orderType === 'dine-in' && !table) return;
@@ -43,7 +43,7 @@ export default function CustomerLoginPage() {
     try {
       // 1. Check or Create Customer
       let customerId = '';
-      
+
       const { data: existingCustomer, error: fetchError } = await supabase
         .from('customers')
         .select('id, name')
@@ -59,7 +59,7 @@ export default function CustomerLoginPage() {
           .insert({ name, phone, points: 0 })
           .select()
           .single();
-          
+
         if (createError) throw createError;
         customerId = newCustomer.id;
       }
@@ -87,7 +87,7 @@ export default function CustomerLoginPage() {
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 font-sans">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-8">
-        
+
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -99,7 +99,7 @@ export default function CustomerLoginPage() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          
+
           {/* Order Type Toggle */}
           <div className="bg-gray-100 p-1 rounded-xl flex">
             <button
@@ -128,8 +128,8 @@ export default function CustomerLoginPage() {
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">Table Number</label>
               <div className="relative">
                 <MapPin className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={table}
                   onChange={(e) => setTable(e.target.value)}
                   placeholder="e.g. 5"
@@ -145,8 +145,8 @@ export default function CustomerLoginPage() {
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">Your Name</label>
             <div className="relative">
               <User className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="John Doe"
@@ -161,8 +161,8 @@ export default function CustomerLoginPage() {
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">WhatsApp Number</label>
             <div className="relative">
               <Phone className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input 
-                type="tel" 
+              <input
+                type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="0812..."
@@ -172,7 +172,7 @@ export default function CustomerLoginPage() {
             </div>
           </div>
 
-          <button 
+          <button
             type="submit"
             disabled={isLoading}
             className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-amber-600/20 transition-all active:scale-95 flex items-center justify-center gap-2"
@@ -182,10 +182,22 @@ export default function CustomerLoginPage() {
 
         </form>
       </div>
-      
+
       <p className="mt-8 text-xs text-gray-400 text-center">
         Powered by MyCafePOS
       </p>
     </main>
+  );
+}
+
+export default function CustomerLoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+      </div>
+    }>
+      <CustomerLoginContent />
+    </Suspense>
   );
 }

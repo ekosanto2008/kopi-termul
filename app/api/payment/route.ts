@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         phone: customerDetails.phone,
       },
       callbacks: {
-        finish: "http://localhost:3000/menu",
+        finish: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/menu`,
       }
     };
 
