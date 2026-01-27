@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
 import crypto from 'crypto';
+import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs'; // Explicitly use Node.js runtime
+export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const notification = await request.json();
     
     // 1. Extract Notification Data
