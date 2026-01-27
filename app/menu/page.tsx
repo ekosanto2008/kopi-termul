@@ -6,9 +6,9 @@ import { Product, Category } from '@/types';
 import { useCustomerStore } from '@/store/customerStore';
 import { useCartStore } from '@/store/cartStore';
 import { useRouter } from 'next/navigation';
-import { ShoppingBag, Loader2, ArrowLeft, ChefHat, CheckCircle, Bell, LogOut } from 'lucide-react';
-import Image from 'next/image';
+import { ShoppingBag, Loader2, ArrowLeft, LogOut } from 'lucide-react';
 import BottomNav from '@/components/customer/BottomNav';
+import { ProductCardSkeleton } from '@/components/ui/Skeleton';
 
 export default function MenuPage() {
   const router = useRouter();
@@ -26,12 +26,32 @@ export default function MenuPage() {
       return;
     }
     fetchData();
+
+    // Realtime Subscription for Product Updates (Stock/Availability)
+    const channel = supabase
+      .channel('menu-updates')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'products' },
+        (payload) => {
+          setProducts((current) =>
+            current.map((p) =>
+              p.id === payload.new.id ? { ...p, ...payload.new } : p
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [isLoggedIn, router]);
 
   const fetchData = async () => {
     try {
       const { data: catData } = await supabase.from('categories').select('*').order('name');
-      const { data: prodData } = await supabase.from('products').select('*').eq('is_available', true);
+      const { data: prodData } = await supabase.from('products').select('*'); // Fetch ALL products
       
       if (catData) setCategories([{ id: 'all', name: 'All' }, ...catData]);
       if (prodData) setProducts(prodData);
@@ -46,34 +66,10 @@ export default function MenuPage() {
     ? products 
     : products.filter(p => p.category_id === activeCategory);
 
-  const getStatusIcon = (status: string) => {
-    switch(status) {
-      case 'cooking': return <ChefHat className="w-4 h-4 text-amber-600" />;
-      case 'ready': return <Bell className="w-4 h-4 text-green-600 animate-bounce" />;
-      default: return <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />;
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch(status) {
-      case 'cooking': return 'Cooking in Progress';
-      case 'ready': return 'Ready for Pickup!';
-      default: return 'Order Received';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case 'cooking': return 'bg-amber-50 border-amber-100 text-amber-900';
-      case 'ready': return 'bg-green-50 border-green-100 text-green-900';
-      default: return 'bg-blue-50 border-blue-100 text-blue-900';
-    }
-  };
-
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
       clearSession();
-      clearCart(); // Optional: clear cart on logout
+      clearCart();
       router.push('/');
     }
   };
@@ -134,44 +130,63 @@ export default function MenuPage() {
         {/* Product List */}
         <div className="p-4 grid grid-cols-2 gap-3">
           {isLoading ? (
-            <div className="col-span-2 text-center py-10">
-              <Loader2 className="w-8 h-8 animate-spin text-amber-600 mx-auto" />
-            </div>
+            Array.from({ length: 6 }).map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))
           ) : (
-            filteredProducts.map((product) => (
-              <div 
-                key={product.id}
-                onClick={() => addToCart(product)}
-                className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 active:scale-95 transition-transform h-full flex flex-col"
-              >
-                <div className="relative h-32 w-full bg-gray-100">
-                  {product.image ? (
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full bg-amber-50 text-amber-600 p-2 text-center text-xs font-bold">
-                      {product.name}
+            filteredProducts.map((product) => {
+              const isUnavailable = product.is_available === false;
+              const isDisabled = isUnavailable;
+
+              return (
+                <div 
+                  key={product.id}
+                  onClick={() => !isDisabled && addToCart(product)}
+                  className={`bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 transition-transform h-full flex flex-col relative
+                    ${isDisabled ? 'opacity-90 grayscale cursor-not-allowed' : 'active:scale-95 cursor-pointer'}
+                  `}
+                >
+                  {isDisabled && (
+                    <div className="absolute inset-0 z-10 bg-white/40 flex items-center justify-center backdrop-blur-[1px]">
+                      <span className="bg-gray-800 text-white text-xs font-bold px-3 py-1 rounded-full -rotate-12 shadow-lg">
+                        TIDAK TERSEDIA
+                      </span>
                     </div>
                   )}
-                </div>
-                <div className="p-3 flex-1 flex flex-col">
-                  <h3 className="font-bold text-gray-900 text-sm line-clamp-2 min-h-[2.5em] mb-1">
-                    {product.name}
-                  </h3>
-                  <div className="flex justify-between items-center mt-auto">
-                    <span className="text-amber-600 font-bold text-sm">
-                      {product.price.toLocaleString('id-ID')}
-                    </span>
-                    <button className="bg-amber-50 text-amber-700 p-2 rounded-lg hover:bg-amber-100 transition-colors">
-                      <ShoppingBag className="w-4 h-4" />
-                    </button>
+                  <div className="relative h-32 w-full bg-gray-100">
+                    {product.image ? (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full bg-amber-50 text-amber-600 p-2 text-center text-xs font-bold">
+                        {product.name}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3 flex-1 flex flex-col">
+                    <h3 className="font-bold text-gray-900 text-sm line-clamp-2 min-h-[2.5em] mb-1">
+                      {product.name}
+                    </h3>
+                    <div className="flex justify-between items-end mt-auto">
+                      <div>
+                        <p className="text-amber-600 font-bold text-sm">
+                          {product.price.toLocaleString('id-ID')}
+                        </p>
+                      </div>
+                      <button 
+                        disabled={isDisabled}
+                        className="bg-amber-50 text-amber-700 p-2 rounded-lg hover:bg-amber-100 transition-colors disabled:bg-gray-100 disabled:text-gray-400"
+                      >
+                        <ShoppingBag className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 

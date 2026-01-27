@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, ChefHat, CheckCircle, Clock } from 'lucide-react';
+import { Loader2, ChefHat, CheckCircle, Clock, Settings, X, Power } from 'lucide-react';
 
 interface OrderItem {
   id: string;
@@ -22,15 +22,37 @@ interface KitchenOrder {
   items?: OrderItem[];
 }
 
+interface Product {
+  id: string;
+  name: string;
+  is_available: boolean;
+  category_id: string;
+}
+
 export default function KitchenPage() {
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showMenuManager, setShowMenuManager] = useState(false);
 
   useEffect(() => {
     fetchOrders();
+    fetchProducts();
     const interval = setInterval(fetchOrders, 10000); // Poll every 10s
     return () => clearInterval(interval);
   }, []);
+
+  const fetchProducts = async () => {
+    const { data } = await supabase.from('products').select('id, name, is_available, category_id').order('name');
+    if (data) setProducts(data);
+  };
+
+  const toggleAvailability = async (productId: string, currentStatus: boolean) => {
+    // Optimistic update
+    setProducts(products.map(p => p.id === productId ? { ...p, is_available: !currentStatus } : p));
+    
+    await supabase.from('products').update({ is_available: !currentStatus }).eq('id', productId);
+  };
 
   const fetchOrders = async () => {
     try {
@@ -108,7 +130,66 @@ export default function KitchenPage() {
           <div className="bg-gray-800 px-4 py-2 rounded-lg text-sm font-medium">
             Active Orders: {orders.length}
           </div>
+          <button
+            onClick={() => setShowMenuManager(true)}
+            className="ml-4 bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
+          >
+            <Settings className="w-4 h-4" />
+            Manage Menu
+          </button>
         </header>
+
+        {/* Menu Manager Modal */}
+        {showMenuManager && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl border border-gray-700">
+              <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-800 rounded-t-2xl">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-amber-500" />
+                  Menu Availability
+                </h2>
+                <button 
+                  onClick={() => setShowMenuManager(false)}
+                  className="p-2 hover:bg-gray-700 rounded-full text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto custom-scrollbar space-y-2">
+                {products.length === 0 && <p className="text-gray-500 text-center">No products found.</p>}
+                {products.map((product) => (
+                  <div 
+                    key={product.id} 
+                    className={`flex items-center justify-between p-4 rounded-xl border transition-all
+                      ${product.is_available 
+                        ? 'bg-gray-800 border-gray-700' 
+                        : 'bg-gray-900/50 border-gray-800 opacity-75'}
+                    `}
+                  >
+                    <div>
+                      <h3 className={`font-bold ${product.is_available ? 'text-white' : 'text-gray-500 line-through decoration-gray-600'}`}>
+                        {product.name}
+                      </h3>
+                      <p className={`text-xs ${product.is_available ? 'text-green-400' : 'text-red-500'}`}>
+                        {product.is_available ? 'Available' : 'Unavailable'}
+                      </p>
+                    </div>
+                    
+                    <button
+                      onClick={() => toggleAvailability(product.id, product.is_available ?? true)}
+                      className={`w-14 h-8 rounded-full p-1 transition-colors flex items-center ${
+                        product.is_available ? 'bg-green-600 justify-end' : 'bg-gray-600 justify-start'
+                      }`}
+                    >
+                      <div className="w-6 h-6 bg-white rounded-full shadow-md" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {orders.length === 0 ? (

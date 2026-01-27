@@ -12,29 +12,51 @@ export async function POST(request: Request) {
       throw new Error('MIDTRANS_SERVER_KEY is missing');
     }
 
-    const roundedTotal = Math.round(totalAmount);
+    // 2. Security: Verify Prices from Database
+    const itemIds = items.map((i: any) => i.id);
+    const { data: dbProducts, error: dbError } = await supabase
+      .from('products')
+      .select('id, name, price')
+      .in('id', itemIds);
+
+    if (dbError || !dbProducts) {
+      throw new Error('Failed to verify product prices');
+    }
+
+    // Create a map for fast lookup
+    const dbProductMap = new Map(dbProducts.map(p => [p.id, p]));
+
+    // Reconstruct items with SECURE prices
+    const midtransItems = items.map((item: any) => {
+      const dbProduct = dbProductMap.get(item.id);
+      
+      if (!dbProduct) {
+         throw new Error(`Product ${item.id} not found or unavailable`);
+      }
+
+      return {
+        id: item.id,
+        price: Math.round(dbProduct.price), // Use DB Price!
+        quantity: item.quantity,
+        name: dbProduct.name.substring(0, 50),
+      };
+    });
+
+    // Recalculate Totals
+    const secureSubtotal = midtransItems.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
     
-    // Create Item List
-    const midtransItems = items.map((item: any) => ({
-      id: item.id,
-      price: Math.round(item.price),
-      quantity: item.quantity,
-      name: item.name.substring(0, 50),
-    }));
+    // Apply Tax (11% - matching cartStore logic)
+    // Note: If you implement discounts later, validate them here too!
+    const secureTax = Math.round(secureSubtotal * 0.11);
+    const secureTotal = secureSubtotal + secureTax;
 
-    // Calculate Item Sum
-    const itemsSum = midtransItems.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
-
-    // Calculate Tax Difference
-    const taxAmount = roundedTotal - itemsSum;
-
-    // Add Tax Item if exists
-    if (taxAmount > 0) {
+    // Add Tax Item for Midtrans display
+    if (secureTax > 0) {
       midtransItems.push({
         id: 'TAX',
-        price: taxAmount,
+        price: secureTax,
         quantity: 1,
-        name: 'Tax & Service',
+        name: 'Tax (11%)',
       });
     }
 
@@ -43,7 +65,7 @@ export async function POST(request: Request) {
         // Append timestamp to order_id for Midtrans ONLY to avoid duplicate ID errors in Sandbox
         // This makes order_id unique even if DB sends the same UUID or we re-use IDs
         order_id: `${orderId}-${Math.floor(Date.now() / 1000)}`,
-        gross_amount: roundedTotal,
+        gross_amount: secureTotal, // Use the verified total
       },
       credit_card: {
         secure: true,

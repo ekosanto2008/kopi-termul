@@ -3,30 +3,35 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { useToastStore } from '@/store/toastStore';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState('');
+  const { addToast } = useToastStore();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
 
-    // Hardcoded credentials for MVP
-    // In production, verify against DB or Env Variables securely
-    await new Promise(resolve => setTimeout(resolve, 500)); // Fake delay
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (username === 'admin' && password === 'admin123') {
-      // Set secure cookie or local storage
-      document.cookie = "admin_token=secret_token_123; path=/; max-age=86400"; // 1 day
-      localStorage.setItem('admin_session', 'true');
+      if (error) {
+        throw error;
+      }
+
+      addToast('Login successful', 'success');
       router.push('/admin');
-    } else {
-      setError('Invalid username or password');
+    } catch (error: any) {
+      addToast(error.message || 'Login failed', 'error');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -45,11 +50,11 @@ export default function AdminLoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input 
-              type="text" 
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none text-gray-900"
               required
             />
@@ -65,12 +70,6 @@ export default function AdminLoginPage() {
               required
             />
           </div>
-
-          {error && (
-            <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg text-center">
-              {error}
-            </div>
-          )}
 
           <button 
             type="submit"

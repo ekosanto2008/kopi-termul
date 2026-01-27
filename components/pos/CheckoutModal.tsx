@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Banknote, QrCode, CheckCircle, Loader2, Printer } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useUIStore } from '@/store/uiStore';
+import { useToastStore } from '@/store/toastStore';
 import { supabase } from '@/lib/supabase';
 import { Customer } from '@/types';
 import { useReactToPrint } from 'react-to-print';
@@ -17,6 +18,7 @@ interface CheckoutModalProps {
 export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   const { items, customer, discount, getTotal, getSubtotal, getDiscountAmount, getTaxAmount, clearCart } = useCartStore();
   const { closeMobileCart } = useUIStore();
+  const { addToast } = useToastStore();
   
   // Recalculate everything to be safe
   const total = getTotal();
@@ -126,9 +128,9 @@ export default function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
       // Clear cart but keep modal open for printing
       clearCart();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Payment Error:', error);
-      alert('Transaction Failed! Please try again.');
+      addToast(error.message || 'Transaction Failed! Please try again.', 'error');
       setIsProcessing(false);
     }
   };

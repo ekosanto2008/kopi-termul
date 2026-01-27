@@ -9,6 +9,8 @@ export interface Product {
   price: number;
   category_id: string;
   image?: string;
+  stock?: number;
+  is_available?: boolean;
 }
 
 export interface CartItem extends Product {

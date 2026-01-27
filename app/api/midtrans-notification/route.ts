@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs'; // Explicitly use Node.js runtime
 
 export async function POST(request: Request) {
   try {
