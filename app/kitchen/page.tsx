@@ -137,6 +137,13 @@ export default function KitchenPage() {
             <Settings className="w-4 h-4" />
             Manage Menu
           </button>
+          <button 
+            onClick={handleLogout}
+            className="ml-2 p-2 bg-red-900/30 text-red-400 hover:bg-red-900/50 rounded-lg transition-colors border border-red-900/50"
+            title="Logout"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
         </header>
 
         {/* Menu Manager Modal */}
