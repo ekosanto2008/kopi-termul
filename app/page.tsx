@@ -90,11 +90,6 @@ function CustomerLoginContent() {
 
         {/* Header */}
         <div className="text-center space-y-2">
-          {/* DEBUGGING: REMOVE THIS LATER */}
-          <div className="bg-red-100 p-2 text-xs text-red-800 break-all rounded mb-4">
-            DEBUG URL: {process.env.NEXT_PUBLIC_SUPABASE_URL || 'UNDEFINED'}
-          </div>
-
           <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Coffee className="w-8 h-8 text-amber-600" />
           </div>

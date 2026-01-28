@@ -20,11 +20,11 @@ ENV NEXT_PUBLIC_SUPABASE_URL="https://xzgmzviakdwkzpxdrvzr.supabase.co"
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6Z216dmlha2R3a3pweGRydnpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzMjQ0MDcsImV4cCI6MjA4NDkwMDQwN30.mxw6w3CvSgNxnz2i1K1X0DHCk2J-tj6DSA_ItMfuyjc"
 ENV NEXT_PUBLIC_BASE_URL="https://kopi-termul-production.up.railway.app"
 
-# For Midtrans, replace these placeholders with real keys before pushing, or rely on Dashboard Variables (might fail if ARG issue persists)
-ARG MIDTRANS_IS_PRODUCTION
-ARG NEXT_PUBLIC_MIDTRANS_CLIENT_KEY
-ENV MIDTRANS_IS_PRODUCTION=${MIDTRANS_IS_PRODUCTION:-false}
-ENV NEXT_PUBLIC_MIDTRANS_CLIENT_KEY=${NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
+# Midtrans Configuration (HARDCODED)
+# Please REPLACE these placeholders with your actual keys from Midtrans Sandbox Dashboard
+ENV MIDTRANS_IS_PRODUCTION="false"
+ENV MIDTRANS_SERVER_KEY="Mid-server-39kl9oxwW2PIR-M-IzdqBBd8"
+ENV NEXT_PUBLIC_MIDTRANS_CLIENT_KEY="Mid-client-Mauwchgcdk6nMQRg"
 
 # Disable telemetry during build.
 ENV NEXT_TELEMETRY_DISABLED 1
