@@ -6,20 +6,18 @@ export function middleware(request: NextRequest) {
   const pathname = url.pathname;
 
   // 1. URL MAPPING (Obscurity - Base64 Encoded)
-  // admin -> YWRtaW4=
-  // kitchen -> a2l0Y2hlbg==
-  // pos -> cG9z
   const pathMap: Record<string, string> = {
     '/cG9z': '/pos',
     '/a2l0Y2hlbg==': '/kitchen',
     '/YWRtaW4=': '/admin',
   };
 
-  // Cek apakah user mengakses URL Rahasia
-  const destination = pathMap[pathname];
-  if (destination) {
-    // Rewrite normal (Auth akan ditangani oleh Page Guard masing-masing)
-    return NextResponse.rewrite(new URL(destination, request.url));
+  // Cek apakah user mengakses URL Rahasia (Prefix Matching)
+  for (const [secretPath, realPath] of Object.entries(pathMap)) {
+    if (pathname === secretPath || pathname.startsWith(`${secretPath}/`)) {
+      const newPath = pathname.replace(secretPath, realPath);
+      return NextResponse.rewrite(new URL(newPath, request.url));
+    }
   }
 
   // 2. BLOCK AKSES LANGSUNG KE URL ASLI
@@ -41,7 +39,7 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // Match paths that we want to rewrite OR block
-    '/cG9z', '/a2l0Y2hlbg==', '/YWRtaW4=',
+    '/cG9z/:path*', '/a2l0Y2hlbg==/:path*', '/YWRtaW4=/:path*',
     '/pos/:path*', '/kitchen/:path*', '/admin/:path*',
     // Exclude static files and APIs
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
