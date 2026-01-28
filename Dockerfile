@@ -38,6 +38,14 @@ WORKDIR /app
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 
+# RE-DECLARE ENV VARS FOR RUNTIME (CRITICAL!)
+ENV NEXT_PUBLIC_SUPABASE_URL="https://xzgmzviakdwkzpxdrvzr.supabase.co"
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6Z216dmlha2R3a3pweGRydnpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzMjQ0MDcsImV4cCI6MjA4NDkwMDQwN30.mxw6w3CvSgNxnz2i1K1X0DHCk2J-tj6DSA_ItMfuyjc"
+ENV NEXT_PUBLIC_BASE_URL="https://kopi-termul-production.up.railway.app"
+ENV MIDTRANS_IS_PRODUCTION="false"
+ENV MIDTRANS_SERVER_KEY="Mid-server-39kl9oxwW2PIR-M-IzdqBBd8"
+ENV NEXT_PUBLIC_MIDTRANS_CLIENT_KEY="Mid-client-Mauwchgcdk6nMQRg"
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
