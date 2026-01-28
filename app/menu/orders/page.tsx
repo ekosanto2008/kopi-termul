@@ -4,8 +4,14 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useCustomerStore } from '@/store/customerStore';
 import { useRouter } from 'next/navigation';
-import { Loader2, ChefHat, CheckCircle, Clock, ChevronRight, Package, Receipt } from 'lucide-react';
+import { Loader2, ChefHat, CheckCircle, Clock, ChevronRight, Package, Receipt, CreditCard, XCircle } from 'lucide-react';
 import BottomNav from '@/components/customer/BottomNav';
+
+declare global {
+  interface Window {
+    snap: any;
+  }
+}
 
 export default function MyOrdersPage() {
   const router = useRouter();
@@ -19,9 +25,21 @@ export default function MyOrdersPage() {
       router.push('/');
       return;
     }
+    
+    // Load Midtrans Snap Script
+    const script = document.createElement('script');
+    script.src = 'https://app.sandbox.midtrans.com/snap/snap.js';
+    script.setAttribute('data-client-key', process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '');
+    document.body.appendChild(script);
+
     fetchOrders();
     const interval = setInterval(fetchOrders, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
   }, [isLoggedIn, router, session]);
 
   const fetchOrders = async () => {
@@ -29,18 +47,49 @@ export default function MyOrdersPage() {
 
     const { data } = await supabase
       .from('orders')
-      .select('id, created_at, total_amount, final_amount, kitchen_status, payment_status')
+      .select('id, created_at, total_amount, final_amount, kitchen_status, payment_status, snap_token')
       .eq('customer_id', session.customerId)
+      .neq('payment_status', 'cancelled') // Hide cancelled orders from active list logic
       .order('created_at', { ascending: false });
 
     if (data) {
-      const active = data.filter(o => ['pending', 'cooking', 'ready'].includes(o.kitchen_status || 'pending'));
-      const past = data.filter(o => !['pending', 'cooking', 'ready'].includes(o.kitchen_status || 'pending'));
+      // Logic: Active if Pending Payment OR Kitchen is working on it
+      const active = data.filter(o => 
+        o.payment_status === 'pending' || 
+        ['pending', 'cooking', 'ready'].includes(o.kitchen_status || 'pending')
+      );
+      
+      const past = data.filter(o => 
+        o.payment_status === 'paid' && 
+        !['pending', 'cooking', 'ready'].includes(o.kitchen_status || 'pending')
+      );
       
       setActiveOrders(active);
       setPastOrders(past);
     }
     setIsLoading(false);
+  };
+
+  const handlePay = (snapToken: string) => {
+    if (window.snap) {
+      window.snap.pay(snapToken, {
+        onSuccess: function(result: any){ fetchOrders(); },
+        onPending: function(result: any){ fetchOrders(); },
+        onError: function(result: any){ alert('Payment failed!'); },
+        onClose: function(){ console.log('customer closed the popup without finishing the payment'); }
+      });
+    }
+  };
+
+  const handleCancel = async (orderId: string) => {
+    if (!confirm('Are you sure you want to cancel this order?')) return;
+
+    await supabase
+      .from('orders')
+      .update({ payment_status: 'cancelled', kitchen_status: 'cancelled' })
+      .eq('id', orderId);
+    
+    fetchOrders();
   };
 
   const getStatusColor = (status: string) => {
@@ -94,14 +143,47 @@ export default function MyOrdersPage() {
                           <p className="font-bold text-gray-900">Order #{order.id.slice(0, 5)}</p>
                           <p className="text-xs text-gray-500">{new Date(order.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</p>
                         </div>
-                        <span className={`px-2 py-1 rounded-lg text-xs font-bold border flex items-center gap-1 uppercase ${getStatusColor(order.kitchen_status)}`}>
-                          {getStatusIcon(order.kitchen_status || 'pending')}
-                          {order.kitchen_status || 'Pending'}
-                        </span>
+                        {order.payment_status === 'pending' ? (
+                          <span className="px-2 py-1 rounded-lg text-xs font-bold border flex items-center gap-1 uppercase bg-amber-50 text-amber-700 border-amber-200">
+                            <Clock className="w-3 h-3" /> Unpaid
+                          </span>
+                        ) : (
+                          <span className={`px-2 py-1 rounded-lg text-xs font-bold border flex items-center gap-1 uppercase ${getStatusColor(order.kitchen_status)}`}>
+                            {getStatusIcon(order.kitchen_status || 'pending')}
+                            {order.kitchen_status || 'Pending'}
+                          </span>
+                        )}
                       </div>
+                      
                       <div className="flex justify-between items-center pt-3 border-t border-gray-50">
                         <span className="text-sm font-medium text-gray-600">Total</span>
-                        <span className="font-bold text-amber-600">Rp {order.final_amount.toLocaleString('id-ID')}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-amber-600">Rp {order.final_amount.toLocaleString('id-ID')}</span>
+                          
+                          {order.payment_status === 'pending' && order.snap_token && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCancel(order.id);
+                                }}
+                                className="bg-red-100 text-red-600 p-2 rounded-lg hover:bg-red-200 transition-colors"
+                                title="Cancel Order"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePay(order.snap_token);
+                                }}
+                                className="bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-700 transition-colors flex items-center gap-1"
+                              >
+                                <CreditCard className="w-3 h-3" /> Pay
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
