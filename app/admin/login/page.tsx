@@ -27,7 +27,7 @@ export default function AdminLoginPage() {
       if (error) throw error;
 
       addToast('Login successful', 'success');
-      router.push('/admin');
+      router.push('/YWRtaW4=');
     } catch (error: any) {
       addToast(error.message || 'Login failed', 'error');
     } finally {

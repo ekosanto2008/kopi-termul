@@ -96,7 +96,7 @@ export default function AdminDashboard() {
             <p className="text-gray-500 text-sm mt-1">Welcome back, here's what's happening today.</p>
           </div>
           <div className="flex gap-3">
-            <Link href="/" className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors shadow-sm">
+            <Link href="/cG9z" className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors shadow-sm">
               Open POS
             </Link>
             <Link href="/admin/transactions" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors flex items-center gap-2 shadow-sm">

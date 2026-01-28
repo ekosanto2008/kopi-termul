@@ -36,7 +36,7 @@ export default function UpdatePasswordPage() {
       if (error) throw error;
 
       addToast('Password updated successfully!', 'success');
-      router.push('/admin'); // Redirect back to admin dashboard
+      router.push('/YWRtaW4='); // Redirect back to admin dashboard
     } catch (error: any) {
       addToast(error.message || 'Failed to update password', 'error');
     } finally {

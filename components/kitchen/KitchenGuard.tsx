@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
-export default function AdminGuard({ children }: { children: React.ReactNode }) {
+export default function KitchenGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [authorized, setAuthorized] = useState(false);
@@ -13,8 +13,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     // Skip checking for login page itself
-    // Note: pathname matches the Browser URL (rewritten URL)
-    if (pathname === '/YWRtaW4=/login') {
+    if (pathname === '/a2l0Y2hlbg==/login') {
       setAuthorized(true);
       setLoading(false);
       return;
@@ -25,13 +24,13 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session) {
-          router.replace('/YWRtaW4=/login');
+          router.replace('/a2l0Y2hlbg==/login');
         } else {
           setAuthorized(true);
         }
       } catch (error) {
         console.error('Auth Check Error:', error);
-        router.replace('/YWRtaW4=/login');
+        router.replace('/a2l0Y2hlbg==/login');
       } finally {
         setLoading(false);
       }
@@ -42,14 +41,13 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
       </div>
     );
   }
 
-  // Only render children if authorized (or if we are on login page)
-  if (!authorized && pathname !== '/YWRtaW4=/login') {
+  if (!authorized && pathname !== '/a2l0Y2hlbg==/login') {
     return null; 
   }
 
